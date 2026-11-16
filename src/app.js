@@ -41,4 +41,10 @@ app.get('/api', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+
+// 404 handler — must stay LAST, after every route, or it swallows them.
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not Found', message: 'Route not found' });
+});
+
 export default app;

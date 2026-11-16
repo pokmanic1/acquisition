@@ -61,3 +61,7 @@
 {"level":"info","message":"127.0.0.1 - - [16/Nov/2026:10:10:57 +0000] \"GET /api HTTP/1.1\" 200 42 \"-\" \"-\"","service":"acquisitions-api","timestamp":"2026-11-16T10:10:57.202Z"}
 {"level":"info","message":"127.0.0.1 - - [16/Nov/2026:10:10:57 +0000] \"GET /nonexistent HTTP/1.1\" 404 49 \"-\" \"-\"","service":"acquisitions-api","timestamp":"2026-11-16T10:10:57.215Z"}
 {"level":"info","message":"127.0.0.1 - - [16/Nov/2026:10:10:57 +0000] \"GET /api/users HTTP/1.1\" 401 60 \"-\" \"-\"","service":"acquisitions-api","timestamp":"2026-11-16T10:10:57.228Z"}
+{"level":"info","message":"127.0.0.1 - - [16/Nov/2026:10:12:22 +0000] \"GET /health HTTP/1.1\" 200 73 \"-\" \"-\"","service":"acquisitions-api","timestamp":"2026-11-16T10:12:22.561Z"}
+{"level":"info","message":"127.0.0.1 - - [16/Nov/2026:10:12:22 +0000] \"GET /api HTTP/1.1\" 200 42 \"-\" \"-\"","service":"acquisitions-api","timestamp":"2026-11-16T10:12:22.575Z"}
+{"level":"info","message":"127.0.0.1 - - [16/Nov/2026:10:12:22 +0000] \"GET /nonexistent HTTP/1.1\" 404 49 \"-\" \"-\"","service":"acquisitions-api","timestamp":"2026-11-16T10:12:22.583Z"}
+{"level":"info","message":"127.0.0.1 - - [16/Nov/2026:10:12:22 +0000] \"GET /api/users HTTP/1.1\" 401 60 \"-\" \"-\"","service":"acquisitions-api","timestamp":"2026-11-16T10:12:22.591Z"}

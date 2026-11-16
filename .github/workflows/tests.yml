@@ -1,0 +1,144 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main, staging]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Jest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      NODE_ENV: test
+      NODE_OPTIONS: --experimental-vm-modules
+      # database.js throws if DATABASE_URL is unset. The current tests never
+      # query the DB, so a placeholder works; set the TEST_DATABASE_URL secret
+      # (e.g. a dedicated Neon test branch) once tests hit the database.
+      DATABASE_URL: ${{ secrets.TEST_DATABASE_URL || 'postgresql://ci:ci@localhost:5432/ci_test' }}
+      # Optional. Without it Arcjet logs an error and allows the request.
+      ARCJET_KEY: ${{ secrets.ARCJET_KEY }}
+      ARCJET_ENV: development
+      JWT_SECRET: ci-test-secret-not-for-production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        id: tests
+        continue-on-error: true
+        run: >
+          npm test --
+          --ci
+          --json --outputFile=test-results.json
+          --testLocationInResults
+          --coverageReporters=text
+          --coverageReporters=lcov
+          --coverageReporters=json-summary
+
+      - name: Annotate test failures
+        if: steps.tests.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const strip = s => s.replace(/\x1b\[[0-9;]*m/g, '');
+
+            if (!fs.existsSync('test-results.json')) {
+              core.error('Jest did not produce test-results.json — the run crashed before reporting. Check the "Run tests" log.');
+              return;
+            }
+
+            const results = JSON.parse(fs.readFileSync('test-results.json', 'utf8'));
+            for (const suite of results.testResults) {
+              const file = path.relative(process.env.GITHUB_WORKSPACE, suite.name);
+
+              // Suite failed to load (import error, syntax error, ...)
+              if (suite.status === 'failed' && suite.assertionResults.length === 0) {
+                core.error(strip(suite.message || 'Test suite failed to run'), {
+                  file,
+                  title: 'Test suite failed to run',
+                });
+              }
+
+              for (const test of suite.assertionResults) {
+                if (test.status !== 'failed') continue;
+                core.error(strip(test.failureMessages.join('\n')).split('\n').slice(0, 15).join('\n'), {
+                  file,
+                  startLine: test.location?.line,
+                  title: `Failed: ${test.fullName}`,
+                });
+              }
+            }
+
+      - name: Write summary
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        with:
+          script: |
+            const fs = require('fs');
+            const passed = process.env.TEST_OUTCOME === 'success';
+            core.summary.addHeading(`Tests ${passed ? '✅ passed' : '❌ failed'}`, 2);
+
+            if (fs.existsSync('test-results.json')) {
+              const r = JSON.parse(fs.readFileSync('test-results.json', 'utf8'));
+              core.summary.addTable([
+                [{ data: 'Suites', header: true }, { data: 'Tests', header: true }, { data: 'Passed', header: true }, { data: 'Failed', header: true }, { data: 'Skipped', header: true }],
+                [`${r.numPassedTestSuites}/${r.numTotalTestSuites}`, `${r.numTotalTests}`, `${r.numPassedTests}`, `${r.numFailedTests}`, `${r.numPendingTests}`],
+              ]);
+            } else {
+              core.summary.addRaw('⚠️ No test results were produced — see the job log.\n');
+            }
+
+            const covFile = 'coverage/coverage-summary.json';
+            if (fs.existsSync(covFile)) {
+              const t = JSON.parse(fs.readFileSync(covFile, 'utf8')).total;
+              core.summary.addHeading('Coverage', 3).addTable([
+                [{ data: 'Statements', header: true }, { data: 'Branches', header: true }, { data: 'Functions', header: true }, { data: 'Lines', header: true }],
+                [`${t.statements.pct}%`, `${t.branches.pct}%`, `${t.functions.pct}%`, `${t.lines.pct}%`],
+              ]);
+            } else {
+              core.summary.addRaw('⚠️ No coverage report was generated.\n');
+            }
+
+            await core.summary.write();
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage/
+            test-results.json
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Fail if tests failed
+        if: steps.tests.outcome == 'failure'
+        run: |
+          echo "::error::Tests failed. See the annotations above, reproduce locally with 'npm test'."
+          exit 1

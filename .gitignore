@@ -4,3 +4,5 @@ dist/
 .env.*
 !.env.example
 .neon_local/
+coverage/
+test-results.json

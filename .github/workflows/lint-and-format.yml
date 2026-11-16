@@ -1,0 +1,76 @@
+name: Lint and Format
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main, staging]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-format:
+    name: ESLint & Prettier
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # setup-node also registers ESLint problem matchers, so every ESLint
+      # error/warning shows up as an inline annotation on the PR diff.
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        id: eslint
+        continue-on-error: true
+        run: npm run lint
+
+      - name: Annotate ESLint failure
+        if: steps.eslint.outcome == 'failure'
+        run: |
+          echo "::error title=ESLint found issues::Run 'npm run lint:fix' locally to auto-fix what it can, fix the rest by hand, then commit."
+
+      - name: Run Prettier check
+        id: prettier
+        continue-on-error: true
+        run: npm run format:check
+
+      - name: Annotate unformatted files
+        if: steps.prettier.outcome == 'failure'
+        run: |
+          npx prettier --list-different . | while read -r file; do
+            echo "::error file=${file},title=Prettier::File is not formatted. Run 'npm run format' locally and commit the result."
+          done
+
+      - name: Write summary
+        if: always()
+        run: |
+          icon() { [ "$1" = "success" ] && echo "✅ Passed" || echo "❌ Failed"; }
+          {
+            echo "## Lint & Format"
+            echo ""
+            echo "| Check | Result | How to fix |"
+            echo "| --- | --- | --- |"
+            echo "| ESLint | $(icon '${{ steps.eslint.outcome }}') | \`npm run lint:fix\` |"
+            echo "| Prettier | $(icon '${{ steps.prettier.outcome }}') | \`npm run format\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail if issues were found
+        if: steps.eslint.outcome == 'failure' || steps.prettier.outcome == 'failure'
+        run: |
+          echo "::error::Lint/format checks failed. Run 'npm run lint:fix' and 'npm run format', then push again."
+          exit 1

@@ -4,14 +4,14 @@ An Express 5 API backed by **Neon Postgres** through Drizzle ORM and the `@neond
 
 The same Docker image runs in both environments. Only the database connection changes:
 
-| | Development | Production |
-| --- | --- | --- |
-| Compose file | `docker-compose.dev.yml` | `docker-compose.prod.yml` |
-| Env file | `.env.development` | `.env.production` (or your platform's secrets) |
-| Docker target | `development` (hot reload, dev deps) | `production` (runtime deps only, non-root, healthcheck) |
-| Database | **Neon Local** proxy → ephemeral Neon branch | **Neon Cloud** directly |
-| `DATABASE_URL` | `postgres://neon:npg@neon-local:5432/neondb` | `postgresql://…@…neon.tech/…?sslmode=require` |
-| `NEON_LOCAL_HOST` | `neon-local` | *unset* |
+|                   | Development                                  | Production                                              |
+| ----------------- | -------------------------------------------- | ------------------------------------------------------- |
+| Compose file      | `docker-compose.dev.yml`                     | `docker-compose.prod.yml`                               |
+| Env file          | `.env.development`                           | `.env.production` (or your platform's secrets)          |
+| Docker target     | `development` (hot reload, dev deps)         | `production` (runtime deps only, non-root, healthcheck) |
+| Database          | **Neon Local** proxy → ephemeral Neon branch | **Neon Cloud** directly                                 |
+| `DATABASE_URL`    | `postgres://neon:npg@neon-local:5432/neondb` | `postgresql://…@…neon.tech/…?sslmode=require`           |
+| `NEON_LOCAL_HOST` | `neon-local`                                 | _unset_                                                 |
 
 ---
 
@@ -160,15 +160,15 @@ The production image:
 
 ## Command reference
 
-| Command | Purpose |
-| --- | --- |
-| `npm run docker:dev` | Start the app and Neon Local (ephemeral branch) |
-| `npm run docker:dev:down` | Stop the dev stack and delete the ephemeral branch |
-| `npm run docker:prod` | Build and start the production container (Neon Cloud) |
-| `npm run docker:prod:down` | Stop the production container |
-| `npm run dev` | Run on the host without Docker (uses `.env`) |
-| `npm start` | Run the production entrypoint on the host |
-| `npm run db:generate` / `db:migrate` / `db:studio` | Drizzle tooling |
+| Command                                            | Purpose                                               |
+| -------------------------------------------------- | ----------------------------------------------------- |
+| `npm run docker:dev`                               | Start the app and Neon Local (ephemeral branch)       |
+| `npm run docker:dev:down`                          | Stop the dev stack and delete the ephemeral branch    |
+| `npm run docker:prod`                              | Build and start the production container (Neon Cloud) |
+| `npm run docker:prod:down`                         | Stop the production container                         |
+| `npm run dev`                                      | Run on the host without Docker (uses `.env`)          |
+| `npm start`                                        | Run the production entrypoint on the host             |
+| `npm run db:generate` / `db:migrate` / `db:studio` | Drizzle tooling                                       |
 
 ## Troubleshooting
 

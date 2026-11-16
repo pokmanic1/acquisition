@@ -1,0 +1,20 @@
+node_modules
+npm-debug.log
+logs
+coverage
+dist
+.git
+.gitignore
+.gitattributes
+.vscode
+.idea
+.neon_local
+
+# Never bake secrets into images — they are injected at runtime
+.env
+.env.*
+!.env.example
+
+Dockerfile
+docker-compose*.yml
+README.md
